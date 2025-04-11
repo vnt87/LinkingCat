@@ -1,4 +1,5 @@
 import GameScene from './GameScene';
+import { createRoundedButton } from '../utils/uiUtils';
 
 export default class UIScene extends Phaser.Scene {
   private gameScene!: GameScene;
@@ -6,15 +7,17 @@ export default class UIScene extends Phaser.Scene {
   private timeElapsed: number = 0;
   private timerEvent?: Phaser.Time.TimerEvent;
   private pauseOverlay?: Phaser.GameObjects.Rectangle;
-  private menuButtons: Phaser.GameObjects.Text[] = [];
+  private menuButtons: { text: Phaser.GameObjects.Text; bg: Phaser.GameObjects.Graphics }[] = [];
+  private gameBoardBottom: number = 0;
 
   constructor() {
     super({ key: 'UIScene' });
   }
 
-  init(data: { gameScene: GameScene }) {
+  init(data: { gameScene: GameScene, gameBoardBottom?: number }) {
     this.gameScene = data.gameScene;
     this.timeElapsed = 0;
+    this.gameBoardBottom = data.gameBoardBottom || this.scale.height * 0.7;
   }
 
   create() {
@@ -23,21 +26,24 @@ export default class UIScene extends Phaser.Scene {
     this.createPauseMenu();
   }
 
+  public startTimer() {
+    if (!this.timerEvent) {
+      this.timerEvent = this.time.addEvent({
+        delay: 1000,
+        callback: this.updateTimer,
+        callbackScope: this,
+        loop: true
+      });
+    }
+  }
+
   private createTimer() {
-    // Create timer text in top-left corner
-    this.timerText = this.add.text(20, 20, '00:00', {
+    // Create timer text in top center
+    this.timerText = this.add.text(this.scale.width / 2, 20, '00:00', {
       fontSize: '32px',
       color: '#333',
       fontFamily: 'Chewy'
-    });
-
-    // Start the timer
-    this.timerEvent = this.time.addEvent({
-      delay: 1000,
-      callback: this.updateTimer,
-      callbackScope: this,
-      loop: true
-    });
+    }).setOrigin(0.5, 0);
   }
 
   private updateTimer() {
@@ -49,59 +55,46 @@ export default class UIScene extends Phaser.Scene {
     );
   }
 
-  private createButtons() {
-    const { width } = this.cameras.main;
-    const buttonY = 20;
-    const padding = 10;
-    
-    // Undo button (right side)
-    const undoButton = this.add.text(width - 100, buttonY, 'Undo', {
-      fontSize: '24px',
-      color: '#333',
-      backgroundColor: '#ddd',
-      padding: { x: 10, y: 5 },
-      fontFamily: 'Chewy'
-    })
-    .setOrigin(1, 0)
-    .setInteractive({ useHandCursor: true });
 
-    undoButton.on('pointerdown', () => {
+  private createButtons() {
+    const { width } = this.scale;
+    const buttonSpacing = 20;
+    const buttonWidth = 120;
+    const buttonHeight = 40;
+    
+    // Menu button (top right)
+    const menuButton = createRoundedButton(
+      this,
+      width - buttonWidth - 20, 
+      20, 
+      '⏸️',
+      buttonWidth,
+      buttonHeight,
+      0x666666
+    );
+
+    // Bottom buttons (centered under game board)
+    const undoButton = createRoundedButton(
+      this,
+      width / 2 - buttonWidth - buttonSpacing / 2,
+      this.gameBoardBottom + 20,
+      '↩️ Undo'
+    );
+
+    const hintButton = createRoundedButton(
+      this,
+      width / 2 + buttonSpacing / 2,
+      this.gameBoardBottom + 20,
+      '💡 Hint'
+    );
+
+    // Add click handlers
+    menuButton.bg.on('pointerdown', () => this.togglePauseMenu(true));
+    undoButton.bg.on('pointerdown', () => {
       this.gameScene.undoLastMove();
     });
-
-    // Hint button (right of timer)
-    const hintButton = this.add.text(150, buttonY, '💡 Hint', {
-      fontSize: '24px',
-      color: '#333',
-      backgroundColor: '#ddd',
-      padding: { x: 10, y: 5 },
-      fontFamily: 'Chewy'
-    })
-    .setInteractive({ useHandCursor: true });
-
-    // Menu button (right of hint)
-    const menuButton = this.add.text(250, buttonY, 'Menu', {
-      fontSize: '24px',
-      color: '#333',
-      backgroundColor: '#ddd',
-      padding: { x: 10, y: 5 },
-      fontFamily: 'Chewy'
-    })
-    .setInteractive({ useHandCursor: true });
-
-    menuButton.on('pointerdown', () => {
-      this.togglePauseMenu(true);
-    });
-
-    // Add hover effects
-    [undoButton, hintButton, menuButton].forEach(button => {
-      button.on('pointerover', () => {
-        button.setStyle({ backgroundColor: '#ccc' });
-      });
-
-      button.on('pointerout', () => {
-        button.setStyle({ backgroundColor: '#ddd' });
-      });
+    hintButton.bg.on('pointerdown', () => {
+      this.startTimer(); // Start timer if not already started
     });
   }
 
@@ -117,34 +110,30 @@ export default class UIScene extends Phaser.Scene {
       .setInteractive();
 
     // Create menu buttons
-    const menuItems = ['Resume', 'Restart', 'Quit'];
-    const buttonHeight = 50;
-    const padding = 10;
+    const menuItems = ['Resume', 'Restart', 'Choose Level', 'Quit'];
+    const buttonWidth = 200;
+    const buttonHeight = 60;
+    const padding = 20;
+    const menuStartY = centerY - ((menuItems.length - 1) * (buttonHeight + padding) / 2);
 
-    menuItems.forEach((item, index) => {
-      const y = centerY - ((menuItems.length - 1) * (buttonHeight + padding) / 2) + 
-                index * (buttonHeight + padding);
+    this.menuButtons = menuItems.map((item, index) => {
+      const y = menuStartY + index * (buttonHeight + padding);
+      const color = item === 'Quit' ? 0xf44336 : 0x4CAF50;
+      
+      const button = createRoundedButton(
+        this,
+        centerX - buttonWidth / 2,
+        y,
+        item,
+        buttonWidth,
+        buttonHeight,
+        color
+      );
+      
+      button.bg.setVisible(false);
+      button.text.setVisible(false);
 
-      const button = this.add.text(centerX, y, item, {
-        fontSize: '32px',
-        color: '#fff',
-        backgroundColor: '#4CAF50',
-        padding: { x: 20, y: 10 },
-        fontFamily: 'Chewy'
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true })
-      .setVisible(false);
-
-      button.on('pointerover', () => {
-        button.setStyle({ backgroundColor: '#45a049' });
-      });
-
-      button.on('pointerout', () => {
-        button.setStyle({ backgroundColor: '#4CAF50' });
-      });
-
-      button.on('pointerdown', () => {
+      button.bg.on('pointerdown', () => {
         switch (item) {
           case 'Resume':
             this.togglePauseMenu(false);
@@ -154,6 +143,11 @@ export default class UIScene extends Phaser.Scene {
             this.scene.restart();
             this.gameScene.scene.restart();
             break;
+          case 'Choose Level':
+            this.scene.stop();
+            this.gameScene.scene.stop();
+            this.scene.start('LevelSelectScene');
+            break;
           case 'Quit':
             this.scene.stop();
             this.gameScene.scene.stop();
@@ -162,14 +156,17 @@ export default class UIScene extends Phaser.Scene {
         }
       });
 
-      this.menuButtons.push(button);
+      return button;
     });
   }
 
   private togglePauseMenu(visible: boolean) {
     if (this.pauseOverlay) {
       this.pauseOverlay.setVisible(visible);
-      this.menuButtons.forEach(button => button.setVisible(visible));
+      this.menuButtons.forEach(button => {
+        button.bg.setVisible(visible);
+        button.text.setVisible(visible);
+      });
       
       if (visible) {
         if (this.timerEvent) this.timerEvent.paused = true;

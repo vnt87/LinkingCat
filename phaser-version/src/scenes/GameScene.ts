@@ -1,6 +1,7 @@
 import 'phaser';
 import { Cell, ColorType, Endpoint, Level, Path } from '../types/game';
 import levels from '../data/levels';
+import UIScene from './UIScene';
 
 export default class GameScene extends Phaser.Scene {
   private gridSize!: number;
@@ -14,6 +15,8 @@ export default class GameScene extends Phaser.Scene {
   private graphics!: Phaser.GameObjects.Graphics;
   private history: Path[][] = [];
   private levelId: number = 0;
+  private timerStarted: boolean = false;
+  private uiScene?: UIScene;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -25,6 +28,7 @@ export default class GameScene extends Phaser.Scene {
     this.activePath = null;
     this.isDragging = false;
     this.history = [];
+    this.timerStarted = false;
   }
 
   create() {
@@ -47,6 +51,13 @@ export default class GameScene extends Phaser.Scene {
     // Draw the initial grid and endpoints
     this.drawGrid();
     this.drawEndpoints();
+    
+    // Calculate board bottom position
+    const boardBottom = this.offsetY + this.gridSize * this.cellSize;
+    
+    // Launch UI Scene immediately
+    this.scene.launch('UIScene', { gameScene: this, gameBoardBottom: boardBottom });
+    this.uiScene = this.scene.get('UIScene') as UIScene;
     
     // Setup input handling
     this.input.on('pointerdown', this.handlePointerDown, this);
@@ -179,6 +190,13 @@ export default class GameScene extends Phaser.Scene {
     const endpoint = this.getEndpointAtCell(cell);
     if (!endpoint) return;
     
+    // Start timer on first valid interaction
+    if (!this.timerStarted && this.uiScene) {
+      console.log('Starting timer...');
+      this.timerStarted = true;
+      this.uiScene.startTimer();
+    }
+
     // Save current state before modifying
     this.saveToHistory();
     
@@ -194,8 +212,6 @@ export default class GameScene extends Phaser.Scene {
     this.isDragging = true;
     this.drawPaths();
 
-    // Launch UI Scene
-    this.scene.launch('UIScene', { gameScene: this });
   }
 
   public undoLastMove() {

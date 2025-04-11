@@ -1,3 +1,5 @@
+import { createRoundedButton } from "../utils/uiUtils";
+
 export default class HomeScene extends Phaser.Scene {
   constructor() {
     super({ key: 'HomeScene' });
@@ -9,34 +11,25 @@ export default class HomeScene extends Phaser.Scene {
     const centerY = height / 2;
 
     // Add title text
-    const title = this.add.text(centerX, centerY - 100, 'LinkingCat', {
+    const title = this.add.text(centerX, height * 0.3, 'LinkingCat', {
       fontSize: '64px',
       color: '#333',
       fontFamily: 'Chewy'
     }).setOrigin(0.5);
 
-    // Add start button
-    const startButton = this.add.text(centerX, centerY + 50, 'Start Game', {
-      fontSize: '32px',
-      color: '#333',
-      backgroundColor: '#4CAF50',
-      padding: { x: 20, y: 10 },
-      fontFamily: 'Chewy'
-    })
-    .setOrigin(0.5)
-    .setInteractive({ useHandCursor: true });
+    // Add Play button
+    const buttonWidth = 200;
+    const buttonHeight = 60;
+    const playButton = createRoundedButton(
+      this,
+      centerX - buttonWidth/2,
+      height * 0.5,
+      'Play',
+      buttonWidth,
+      buttonHeight
+    );
 
-    // Add hover effects
-    startButton.on('pointerover', () => {
-      startButton.setStyle({ color: '#fff' });
-    });
-
-    startButton.on('pointerout', () => {
-      startButton.setStyle({ color: '#333' });
-    });
-
-    // Add click handler
-    startButton.on('pointerdown', () => {
+    playButton.bg.on('pointerdown', () => {
       this.scene.start('LevelSelectScene');
     });
   }

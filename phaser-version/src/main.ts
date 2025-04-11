@@ -6,8 +6,8 @@ import UIScene from './scenes/UIScene';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
-  width: 800,
-  height: 600,
+  width: 600,
+  height: 800,
   backgroundColor: '#f0f0f0',
   physics: {
     default: 'arcade',
