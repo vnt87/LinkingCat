@@ -1,10 +1,14 @@
-## NumberFlow
+## Linking Cat
 
-This app was created using https://getmocha.com.
-Need help or want to join the community? Join our [Discord](https://discord.gg/shDEGBSe2d).
+### Screenshots
 
-To run the devserver:
+![Application Screenshot](/screenshots/home.jpg)
+
+![Another Screenshot](/screenshots/gameboard.jpg)
+
+
+### To run the devserver:
 ```
-npm install
-npm run dev
+bun install
+bun dev
 ```
